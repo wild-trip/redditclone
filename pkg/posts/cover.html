@@ -1,0 +1,553 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">reddit/pkg/posts/comment_repo.go (0.0%)</option>
+				
+				<option value="file1">reddit/pkg/posts/post_repo.go (100.0%)</option>
+				
+				<option value="file2">reddit/pkg/posts/post_repoDB_mock.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package posts
+
+import (
+        "log"
+        "reddit/pkg/user"
+        "time"
+
+        "gopkg.in/mgo.v2"
+        "gopkg.in/mgo.v2/bson"
+)
+
+func NewCommentRepo(collection *mgo.Collection) *CommentsRepo <span class="cov0" title="0">{
+        return &amp;CommentsRepo{DB: collection}
+}</span>
+
+func (repo *CommentsRepo) NewComment(autor *user.User, body string) (bson.ObjectId, error) <span class="cov0" title="0">{
+        newCommment := &amp;Comment{
+                ID:      bson.NewObjectId(),
+                Autor:   autor,
+                Body:    body,
+                Created: time.Now().Format(time.RFC3339),
+        }
+        repo.DB.Insert(&amp;newCommment)
+        return newCommment.ID, nil
+}</span>
+
+func (repo *CommentsRepo) GetByID(id bson.ObjectId) (*Comment, error) <span class="cov0" title="0">{
+        var comment *Comment
+        err := repo.DB.Find(bson.M{"_id": id}).One(&amp;comment)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("DB error")
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return comment, nil</span>
+}
+
+func (repo *CommentsRepo) DelComment(commentID bson.ObjectId) (bool, error) <span class="cov0" title="0">{
+        err := repo.DB.Remove(bson.M{"_id": commentID})
+        if err != nil </span><span class="cov0" title="0">{
+                return false, err
+        }</span>
+        <span class="cov0" title="0">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package posts
+
+import (
+        "fmt"
+        "log"
+        "reddit/pkg/user"
+        "time"
+
+        "gopkg.in/mgo.v2"
+        "gopkg.in/mgo.v2/bson"
+)
+
+type PostsRepo struct {
+        DB PostRepositoryDBInterface
+}
+
+type FindInterface interface {
+        One(interface{}) error
+        All(interface{}) error
+}
+
+type PostRepositoryDBInterface interface {
+        Find(interface{}) FindInterface //*mgo.Query //
+        Insert(...interface{}) error
+        Update(interface{}, interface{}) error
+        Remove(interface{}) error
+}
+
+func NewRepo(collection PostRepositoryDBInterface) *PostsRepo <span class="cov8" title="1">{
+        return &amp;PostsRepo{DB: collection}
+}</span>
+
+func (repo *PostsRepo) GetAll() ([]*Post, error) <span class="cov8" title="1">{
+        posts := []*Post{}
+        err := repo.DB.Find(bson.M{}).All(&amp;posts)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Printf("DB error")
+                return nil, fmt.Errorf("DB err: %v", err)
+        }</span>
+        <span class="cov8" title="1">return posts, nil</span>
+}
+
+func (repo *PostsRepo) GetCategory(category string) ([]*Post, error) <span class="cov8" title="1">{
+        var posts []*Post
+        err := repo.DB.Find(bson.M{"category": category}).All(&amp;posts)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Printf("DB error")
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return posts, nil</span>
+}
+
+func (repo *PostsRepo) GetByID(id bson.ObjectId) (*Post, error) <span class="cov8" title="1">{
+        var post *Post
+        err := repo.DB.Find(bson.M{"_id": id}).One(&amp;post)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Printf("DB error: %v", err)
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return post, nil</span>
+}
+
+func (repo *PostsRepo) GetByUserLogin(login string) ([]*Post, error) <span class="cov8" title="1">{
+        var posts []*Post
+        err := repo.DB.Find(bson.M{"author.username": login}).All(&amp;posts)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Printf("DB error")
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return posts, nil</span>
+}
+
+func (repo *PostsRepo) Add(
+        user *user.User,
+        category string,
+        title string,
+        typePost string,
+        text string,
+        link string) (*Post, error) <span class="cov8" title="1">{
+        nowTime := time.Now()
+        timestamp := nowTime.Format(time.RFC3339)
+        newPost := &amp;Post{
+                ID:               bson.NewObjectId(),
+                Author:           user,
+                Category:         category,
+                CommentsID:       make([]bson.ObjectId, 0),
+                Created:          timestamp,
+                Score:            1,
+                Title:            title,
+                UpvotePercentage: 100,
+                Views:            0,
+                Votes:            make([]Vote, 0),
+        }
+        if typePost == "link" </span><span class="cov8" title="1">{
+                newPost.Link = link
+                newPost.Text = ""
+                newPost.Type = typePost
+        }</span> else<span class="cov8" title="1"> {
+                newPost.Link = ""
+                newPost.Text = text
+                newPost.Type = typePost
+        }</span>
+        <span class="cov8" title="1">newPost.Votes = append(newPost.Votes, Vote{
+                UserID: user.ID,
+                Rating: 1,
+        })
+
+        err := repo.DB.Insert(&amp;newPost)
+        if err != nil </span><span class="cov8" title="1">{
+                log.Printf("Insert error")
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return newPost, nil</span>
+}
+
+func (repo *PostsRepo) AddComment(postID, commentID bson.ObjectId) (*Post, error) <span class="cov8" title="1">{
+        post, err := repo.GetByID(postID)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Error getting post from BD: %v", err)
+        }</span>
+        <span class="cov8" title="1">post.CommentsID = append(post.CommentsID, commentID)
+        err = repo.DB.Update(
+                bson.M{"_id": postID},
+                post)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Error update BD: %v", err)
+        }</span>
+        <span class="cov8" title="1">return post, nil</span>
+}
+
+func (repo *PostsRepo) UpViews(postID bson.ObjectId) error <span class="cov8" title="1">{
+        post, err := repo.GetByID(postID)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("Error getting post from BD: %v", err)
+        }</span>
+        <span class="cov8" title="1">post.Views++
+        err = repo.DB.Update(
+                bson.M{"_id": postID},
+                post)
+        if err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("Error update BD: %v", err)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+func (repo *PostsRepo) DeleteComment(postID, commentID bson.ObjectId) (*Post, error) <span class="cov8" title="1">{
+        post, err := repo.GetByID(postID)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Error getting post from BD: %v", err)
+        }</span>
+
+        <span class="cov8" title="1">for iComment := range post.CommentsID </span><span class="cov8" title="1">{
+                if post.CommentsID[iComment] == commentID </span><span class="cov8" title="1">{
+                        post.CommentsID = append(post.CommentsID[:iComment], post.CommentsID[iComment+1:]...)
+                        break</span>
+                }
+        }
+
+        <span class="cov8" title="1">err = repo.DB.Update(
+                bson.M{"_id": postID},
+                post)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Error update BD: %v", err)
+        }</span>
+        <span class="cov8" title="1">return post, nil</span>
+}
+
+func (repo *PostsRepo) Upvote(user *user.User, postID bson.ObjectId) (*Post, error) <span class="cov8" title="1">{
+        elem, err := repo.GetByID(postID)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("DB err: %v", err)
+        }</span>
+        <span class="cov8" title="1">nUpVotes := 0
+        iUserVote := -1
+        for i, vote := range elem.Votes </span><span class="cov8" title="1">{
+                if vote.UserID == user.ID </span><span class="cov8" title="1">{
+                        iUserVote = i
+                }</span>
+                <span class="cov8" title="1">if vote.Rating == 1 </span><span class="cov8" title="1">{
+                        nUpVotes++
+                }</span>
+        }
+        <span class="cov8" title="1">if iUserVote != -1 </span><span class="cov8" title="1">{
+                if elem.Votes[iUserVote].Rating == -1 </span><span class="cov8" title="1">{
+                        nUpVotes++
+                        elem.Score += 2
+                        elem.Votes[iUserVote].Rating = 1
+                }</span>
+        } else<span class="cov8" title="1"> {
+                nUpVotes += 1
+                elem.Score++
+                elem.Votes = append(elem.Votes, Vote{
+                        UserID: user.ID,
+                        Rating: 1,
+                })
+        }</span>
+
+        <span class="cov8" title="1">elem.UpvotePercentage = nUpVotes * 100 / len(elem.Votes)
+
+        err = repo.DB.Update(
+                bson.M{"_id": postID},
+                elem)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Error update BD: %v", err)
+        }</span>
+        <span class="cov8" title="1">return elem, nil</span>
+}
+
+func (repo *PostsRepo) Downvote(user *user.User, postID bson.ObjectId) (*Post, error) <span class="cov8" title="1">{
+        elem, err := repo.GetByID(postID)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("DB err: %v", err)
+        }</span>
+        <span class="cov8" title="1">nUpVotes := 0
+        iUserVote := -1
+        for i, vote := range elem.Votes </span><span class="cov8" title="1">{
+                if vote.UserID == user.ID </span><span class="cov8" title="1">{
+                        iUserVote = i
+                }</span>
+                <span class="cov8" title="1">if vote.Rating == 1 </span><span class="cov8" title="1">{
+                        nUpVotes++
+                }</span>
+        }
+        <span class="cov8" title="1">if iUserVote != -1 </span><span class="cov8" title="1">{
+                if elem.Votes[iUserVote].Rating == 1 </span><span class="cov8" title="1">{
+                        elem.Score -= 2
+                        nUpVotes--
+                        elem.Votes[iUserVote].Rating = -1
+                }</span>
+        } else<span class="cov8" title="1"> {
+                elem.Score--
+                elem.Votes = append(elem.Votes, Vote{
+                        UserID: user.ID,
+                        Rating: -1,
+                })
+        }</span>
+
+        <span class="cov8" title="1">elem.UpvotePercentage = nUpVotes * 100 / len(elem.Votes)
+        err = repo.DB.Update(
+                bson.M{"_id": postID},
+                elem)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("Error update BD: %v", err)
+        }</span>
+        <span class="cov8" title="1">return elem, nil</span>
+}
+
+func (repo *PostsRepo) Delete(postID bson.ObjectId) (bool, error) <span class="cov8" title="1">{
+        err := repo.DB.Remove(bson.M{"_id": postID})
+        if err == mgo.ErrNotFound </span><span class="cov8" title="1">{
+                return false, nil
+        }</span> else<span class="cov8" title="1"> if err != nil </span><span class="cov8" title="1">{
+                return false, err
+        }</span>
+        <span class="cov8" title="1">return true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: repo.go
+
+// Package posts is a generated GoMock package.
+package posts
+
+import (
+        gomock "github.com/golang/mock/gomock"
+        reflect "reflect"
+)
+
+// MockFindInterface is a mock of FindInterface interface
+type MockFindInterface struct {
+        ctrl     *gomock.Controller
+        recorder *MockFindInterfaceMockRecorder
+}
+
+// MockFindInterfaceMockRecorder is the mock recorder for MockFindInterface
+type MockFindInterfaceMockRecorder struct {
+        mock *MockFindInterface
+}
+
+// NewMockFindInterface creates a new mock instance
+func NewMockFindInterface(ctrl *gomock.Controller) *MockFindInterface <span class="cov8" title="1">{
+        mock := &amp;MockFindInterface{ctrl: ctrl}
+        mock.recorder = &amp;MockFindInterfaceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockFindInterface) EXPECT() *MockFindInterfaceMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// One mocks base method
+func (m *MockFindInterface) One(arg0 interface{}) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "One", arg0)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// One indicates an expected call of One
+func (mr *MockFindInterfaceMockRecorder) One(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "One", reflect.TypeOf((*MockFindInterface)(nil).One), arg0)
+}</span>
+
+// All mocks base method
+func (m *MockFindInterface) All(arg0 interface{}) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "All", arg0)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// All indicates an expected call of All
+func (mr *MockFindInterfaceMockRecorder) All(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "All", reflect.TypeOf((*MockFindInterface)(nil).All), arg0)
+}</span>
+
+// MockPostRepositoryDBInterface is a mock of PostRepositoryDBInterface interface
+type MockPostRepositoryDBInterface struct {
+        ctrl     *gomock.Controller
+        recorder *MockPostRepositoryDBInterfaceMockRecorder
+}
+
+// MockPostRepositoryDBInterfaceMockRecorder is the mock recorder for MockPostRepositoryDBInterface
+type MockPostRepositoryDBInterfaceMockRecorder struct {
+        mock *MockPostRepositoryDBInterface
+}
+
+// NewMockPostRepositoryDBInterface creates a new mock instance
+func NewMockPostRepositoryDBInterface(ctrl *gomock.Controller) *MockPostRepositoryDBInterface <span class="cov8" title="1">{
+        mock := &amp;MockPostRepositoryDBInterface{ctrl: ctrl}
+        mock.recorder = &amp;MockPostRepositoryDBInterfaceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockPostRepositoryDBInterface) EXPECT() *MockPostRepositoryDBInterfaceMockRecorder <span class="cov8" title="1">{
+        return m.recorder
+}</span>
+
+// Find mocks base method
+func (m *MockPostRepositoryDBInterface) Find(arg0 interface{}) FindInterface <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Find", arg0)
+        ret0, _ := ret[0].(FindInterface)
+        return ret0
+}</span>
+
+// Find indicates an expected call of Find
+func (mr *MockPostRepositoryDBInterfaceMockRecorder) Find(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Find", reflect.TypeOf((*MockPostRepositoryDBInterface)(nil).Find), arg0)
+}</span>
+
+// Insert mocks base method
+func (m *MockPostRepositoryDBInterface) Insert(arg0 ...interface{}) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        varargs := []interface{}{}
+        for _, a := range arg0 </span><span class="cov8" title="1">{
+                varargs = append(varargs, a)
+        }</span>
+        <span class="cov8" title="1">ret := m.ctrl.Call(m, "Insert", varargs...)
+        ret0, _ := ret[0].(error)
+        return ret0</span>
+}
+
+// Insert indicates an expected call of Insert
+func (mr *MockPostRepositoryDBInterfaceMockRecorder) Insert(arg0 ...interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Insert", reflect.TypeOf((*MockPostRepositoryDBInterface)(nil).Insert), arg0...)
+}</span>
+
+// Update mocks base method
+func (m *MockPostRepositoryDBInterface) Update(arg0, arg1 interface{}) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Update", arg0, arg1)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// Update indicates an expected call of Update
+func (mr *MockPostRepositoryDBInterfaceMockRecorder) Update(arg0, arg1 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockPostRepositoryDBInterface)(nil).Update), arg0, arg1)
+}</span>
+
+// Remove mocks base method
+func (m *MockPostRepositoryDBInterface) Remove(arg0 interface{}) error <span class="cov8" title="1">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Remove", arg0)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// Remove indicates an expected call of Remove
+func (mr *MockPostRepositoryDBInterfaceMockRecorder) Remove(arg0 interface{}) *gomock.Call <span class="cov8" title="1">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Remove", reflect.TypeOf((*MockPostRepositoryDBInterface)(nil).Remove), arg0)
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
